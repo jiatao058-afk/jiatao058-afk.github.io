@@ -326,14 +326,26 @@ def build_pdf(data: dict, output_path: Path) -> None:
 
     story = []
 
-    # Add profile photo if exists
+    # Photo path for background
     import os as _os
     _photo_path = _os.path.join(_os.path.dirname(str(output_path)), "..", "images", "photo.jpg")
-    if _os.path.exists(_photo_path):
-        img = Image(_photo_path, width=100, height=100)
-        img.hAlign = "CENTER"
-        story.append(img)
-        story.append(Spacer(1, 8))
+
+    def draw_page_background(canvas, doc_obj):
+        """Draw photo as background on each page."""
+        if _os.path.exists(_photo_path):
+            from reportlab.lib.utils import ImageReader
+            img_reader = ImageReader(_photo_path)
+            img_w, img_h = img_reader.getSize()
+            # Keep original ratio, fit in 100px wide
+            display_w = 90
+            display_h = display_w * img_h / img_w
+            # Place at top-left with padding
+            x = doc_obj.leftMargin - 5
+            y = doc_obj.pagesize[1] - doc_obj.topMargin - display_h + 10
+            canvas.saveState()
+            canvas.setFillAlpha(0.12)  # very faint for background
+            canvas.drawImage(img_reader, x, y, width=display_w, height=display_h, mask='auto')
+            canvas.restoreState()
 
     story.append(Paragraph(escape(data["name"]), styles["ResumeName"]))
     if data["contact_lines"]:
@@ -437,7 +449,8 @@ def build_pdf(data: dict, output_path: Path) -> None:
             )
         )
 
-    def add_page_number(canvas, doc_obj):
+    def on_page(canvas, doc_obj):
+        draw_page_background(canvas, doc_obj)
         page_num = canvas.getPageNumber()
         canvas.setFont("SimHei", 8)
         canvas.setFillColor(colors.HexColor("#6B7280"))
@@ -447,7 +460,7 @@ def build_pdf(data: dict, output_path: Path) -> None:
             f"Page {page_num}",
         )
 
-    doc.build(story, onFirstPage=add_page_number, onLaterPages=add_page_number)
+    doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
 
 
 def main() -> None:
