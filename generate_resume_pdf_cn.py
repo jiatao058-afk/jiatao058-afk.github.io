@@ -22,6 +22,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     HRFlowable,
+    Image,
     ListFlowable,
     ListItem,
     Paragraph,
@@ -324,6 +325,15 @@ def build_pdf(data: dict, output_path: Path) -> None:
     )
 
     story = []
+
+    # Add profile photo if exists
+    import os as _os
+    _photo_path = _os.path.join(_os.path.dirname(str(output_path)), "..", "images", "photo.jpg")
+    if _os.path.exists(_photo_path):
+        img = Image(_photo_path, width=100, height=100)
+        img.hAlign = "CENTER"
+        story.append(img)
+        story.append(Spacer(1, 8))
 
     story.append(Paragraph(escape(data["name"]), styles["ResumeName"]))
     if data["contact_lines"]:
